@@ -1,0 +1,130 @@
+/** Alfacentauricoin */
+
+pragma solidity ^0.4.16;
+
+interface tokenRecipient { function receiveApproval(address _from, uint256 _value, address _token, bytes _extraData) public; }
+
+contract TokenERC20 {
+    // Variables públicas del token
+    string public Alfacentauricoin; /** el nombre de la moneda */
+    string public ac;//símbolo del Alfacentauricoin
+    uint8 public decimals = 18; /** pueden ser más o menos decimales dependiendo de cuantas monedas se transen en la ICO */
+    
+    uint256 public totalSupply; /**total de monedas */
+
+    /** Creación de array para todos los balances */
+    mapping (address => uint256) public balanceOf;
+    mapping (address => mapping (address => uint256)) public allowance;
+
+    /** Esto genera un evento público en la cadena de bloques que notificará a los clientes */
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    /** Esto notifica a los clientes sobre la cantidad transada */
+
+   event Burn(address indexed from, uint256 value);
+
+    /**
+      Función constructor
+     
+     */
+    function TokenERC20(
+        uint256 initialSupply,
+        string tokenName,
+        string tokenSymbol
+    ) public {
+        totalSupply = initialSupply * 10 ** uint256(decimals);  /** El valor 10 es arbitrario, ya que depende del valor final que se quiera fijar de la moneda*/
+        balanceOf[msg.sender] = totalSupply;  
+              
+        alfacentauricoin = tokenName;                                   /** Instanciación de la variable alfacentauri */
+        ac = tokenSymbol;                               /** Set Instanciación de la sigla AC referente al símbolo de la moneda */
+    }
+
+    
+    function _transfer(address _from, address _to, uint _value) internal {
+        
+        require(_to != 0x0);
+        
+        require(balanceOf[_from] >= _value);
+
+        require(balanceOf[_to] + _value > balanceOf[_to]);
+        
+        uint previousBalances = balanceOf[_from] + balanceOf[_to];
+        
+        balanceOf[_from] -= _value;
+        
+        balanceOf[_to] += _value;
+        Transfer(_from, _to, _value);
+        
+        assert(balanceOf[_from] + balanceOf[_to] == previousBalances);
+    }
+
+    /**
+    Transferencia de tokens
+     
+   Enviar el token  `_value` hacia`_to` desde tu cuenta
+     
+      @param _to Dirección
+      @param _value Monto a enviar
+     */
+    function transfer(address _to, uint256 _value) public {
+        _transfer(msg.sender, _to, _value);
+    }
+
+    /**
+      Transferencia de  tokens desde otras direcciones 
+     
+     */
+    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
+        require(_value <= allowance[_from][msg.sender]);   
+        allowance[_from][msg.sender] -= _value;
+        _transfer(_from, _to, _value);
+        return true;
+    }
+
+    function approve(address _spender, uint256 _value) public
+        returns (bool success) {
+        allowance[msg.sender][_spender] = _value;
+        return true;
+    }
+
+    function approveAndCall(address _spender, uint256 _value, bytes _extraData)
+        public
+        returns (bool success) {
+        tokenRecipient spender = tokenRecipient(_spender);
+        if (approve(_spender, _value)) {
+            spender.receiveApproval(msg.sender, _value, this, _extraData);
+            return true;
+        }
+    }
+
+    /**
+     * Destrucción del o los tokens 
+     *
+     * Remueve el token `_value` desde su origen irreversiblemente
+     
+     */
+    function burn(uint256 _value) public returns (bool success) {
+        require(balanceOf[msg.sender] >= _value);   // Check if the sender has enough
+        balanceOf[msg.sender] -= _value;            // Subtract from the sender
+        totalSupply -= _value;                      // Updates totalSupply
+        Burn(msg.sender, _value);
+        return true;
+    }
+
+    /**
+     * Destruye tokens provenientes de otra cuenta 
+     
+     */
+    function burnFrom(address _from, uint256 _value) public returns (bool success) {
+        require(balanceOf[_from] >= _value);                 
+        require(_value <= allowance[_from][msg.sender]);     
+        balanceOf[_from] -= _value;                          
+        allowance[_from][msg.sender] -= _value;              
+        totalSupply -= _value;                              // 
+        Burn(_from, _value);
+        return true;
+    }
+}
+
+
